@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countdown Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #191919;
+            --block-color: #191919;
+            --number-color: #E0E0E0;
+            --label-color: #9A9A9A;
+            --colon-color: #E0E0E0;
+            --font-main: 'Inter', sans-serif;
+            --final-message-color: #4CAF50;
+        }
+        body {
+            margin: 0; padding: 10px;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            box-sizing: border-box;
+            font-family: var(--font-main);
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+        .timer-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        #timer-title {
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 2.5em;
+            color: var(--number-color);
+            margin-bottom: 1px;
+            letter-spacing: 1px;
+            text-align: left;
+        }
+        #timer-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            text-align: center;
+        }
+        .time-block {
+            background-color: var(--block-color);
+            padding: 1px;
+            border-radius: 5px;
+            min-width: 60px;
+            transition: transform 0.2s ease;
+            margin: 0 0;
+        }
+        .time-block:hover { transform: translateY(-5px); }
+        .numbers {
+            font-family: var(--font-main);
+            font-weight: 600;
+            font-size: 2.5em;
+            color: var(--number-color);
+            line-height: 1;
+        }
+        .label {
+            font-family: var(--font-main);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.6em;
+            letter-spacing: 2px;
+            color: var(--label-color);
+            margin-top: 5px;
+        }
+        .colon {
+            display: flex;
+            align-items: center;
+            font-size: 3.5em;
+            color: var(--colon-color);
+            font-weight: 600;
+            margin: 0 10px;
+            height: 100%;
+            line-height: 1;
+            user-select: none;
+        }
+        #final-message {
+            font-family: var(--font-main);
+            font-size: 2.5em;
+            color: var(--final-message-color);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="timer-container">
+    <div id="timer-title">Обновить акции</div>
+    <div id="timer-wrapper">
+        <div class="time-block">
+            <div id="days" class="numbers">0</div>
+            <div class="label">ДНИ</div>
+        </div>
+        <span class="colon">:</span>
+        <div class="time-block">
+            <div id="hours" class="numbers">0</div>
+            <div class="label">ЧАСЫ</div>
+        </div>
+        <span class="colon">:</span>
+        <div class="time-block">
+            <div id="minutes" class="numbers">0</div>
+            <div class="label">МИНУТЫ</div>
+        </div>
+    </div>
+    <div id="final-message" style="display:none;">Время вышло! 🎉</div>
+</div>
+<script>
+    // Получаем параметры из адресной строки (для кастомизации)
+    const params = new URLSearchParams(window.location.search);
+
+    // Автоматически рассчитываем дату окончания:
+    // старт — 1-е число текущего месяца, окончание — 19-е число 00:00
+    const nowDate = new Date();
+    let targetDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), 19, 0, 0, 0);
+
+    // Если сегодня уже после 19-го, считаем следующий месяц
+    if (nowDate >= targetDate) {
+        targetDate = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 19, 0, 0, 0);
+    }
+
+    // Получаем текст сообщения по окончании таймера из параметра или используем стандартное сообщение
+    const finalMessageText = params.get('message') || 'Время вышло! 🎉';
+
+    // Получаем параметры цвета и заголовка из адресной строки
+    const bgColor = params.get('bgcolor'),
+          blockColor = params.get('blockcolor'),
+          numberColor = params.get('numbercolor'),
+          labelColor = params.get('labelcolor'),
+          title = params.get('title');
+
+    // Получаем корневой элемент документа для изменения CSS-переменных
+    const root = document.documentElement;
+    if (bgColor) root.style.setProperty('--bg-color', `#${bgColor}`);
+    if (blockColor) root.style.setProperty('--block-color', `#${blockColor}`);
+    if (numberColor) root.style.setProperty('--number-color', `#${numberColor}`);
+    if (labelColor) root.style.setProperty('--label-color', `#${labelColor}`);
+    if (title) document.getElementById('timer-title').textContent = title;
+
+    // Получаем элементы для вывода дней, часов, минут, обёртку таймера и сообщение
+    const daysEl = document.getElementById("days"),
+          hoursEl = document.getElementById("hours"),
+          minutesEl = document.getElementById("minutes"),
+          timerWrapper = document.getElementById("timer-wrapper"),
+          finalMessage = document.getElementById("final-message");
+
+    // Устанавливаем текст сообщения по окончании таймера
+    finalMessage.textContent = finalMessageText;
+
+    // Запускаем таймер, который обновляет значения каждую секунду
+    const timer = setInterval(function() {
+        const now = new Date().getTime(),
+              diff = targetDate - now;
+
+        if (diff <= 0) {
+            clearInterval(timer);
+            timerWrapper.style.display = 'none';
+            finalMessage.style.display = 'block';
+            return;
+        }
+
+        let days = Math.floor(diff / (1000 * 60 * 60 * 24)),
+            hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+            minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        daysEl.innerHTML = days;
+        hoursEl.innerHTML = hours < 10 ? '0' + hours : hours;
+        minutesEl.innerHTML = minutes < 10 ? '0' + minutes : minutes;
+    }, 1000);
+</script>
+</body>
+</html>
